@@ -1,3 +1,7 @@
+import 'package:calendar/service/auth_service.dart';
+import 'package:calendar/service/database_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -20,10 +24,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _address = '';
   String _userType = '';
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      print(
-          'Ad: $_name\nSoyad: $_surname\nKullanıcı Adı: $_username\nŞifre: $_password\nTC Kimlik No: $_identityNumber\nTelefon: $_phone\nE-posta: $_email\nAdres: $_address\nKullanıcı Tipi: $_userType');
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: _email, password: _password);
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user?.uid)
+            .set({
+          'name': _name,
+          'surname': _surname,
+          'username': _username,
+          'identityNumber': _identityNumber,
+          'phone': _phone,
+          'email': _email,
+          'address': _address,
+          'userType': _userType
+        });
+
+        print('Kullanıcı başarıyla kaydedildi!');
+      } on FirebaseAuthException catch (e) {
+        print('Hata: $e');
+      } catch (e) {
+        print('Hata: $e');
+      }
     }
   }
 
