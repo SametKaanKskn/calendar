@@ -1,3 +1,4 @@
+import 'package:calendar/home_page.dart';
 import 'package:calendar/profile_page.dart';
 import 'package:calendar/register.page.dart';
 import 'package:calendar/services/auth_service.dart';
@@ -27,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProfileScreen(user.uid)),
+          MaterialPageRoute(builder: (context) => HomeScreen()),
         );
       } else {
         print("Oturum açarken hata oluştu");

@@ -32,46 +32,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Widget _buildProfileCard(String title, String? value, IconData iconData) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 5,
+      child: ListTile(
+        leading: Icon(iconData),
+        title: Text(title),
+        subtitle: Text(value ?? ''),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profil'),
+        title: Text('Profil Sayfası'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
-            Text(
-              'Ad: ${_userData['name'] ?? ''}',
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Soyad: ${_userData['surname'] ?? ''}',
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Kullanıcı Adı: ${_userData['username'] ?? ''}',
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'E-posta: ${_userData['email'] ?? ''}',
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Telefon: ${_userData['phone'] ?? ''}',
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Adres: ${_userData['address'] ?? ''}',
-              style: TextStyle(fontSize: 18),
-            ),
+            _buildProfileCard('Ad', _userData['name'], Icons.person),
+            _buildProfileCard('Soyad', _userData['surname'], Icons.person),
+            _buildProfileCard(
+                'Kullanıcı Adı', _userData['username'], Icons.account_circle),
+            _buildProfileCard('E-posta', _userData['email'], Icons.email),
+            _buildProfileCard('Telefon', _userData['phone'], Icons.phone),
+            _buildProfileCard('Adres', _userData['address'], Icons.location_on),
           ],
         ),
       ),
