@@ -1,5 +1,6 @@
-import 'package:calendar/service/auth_service.dart';
-import 'package:calendar/service/database_service.dart';
+import 'package:calendar/models/user_model.dart';
+import 'package:calendar/services/auth_service.dart';
+import 'package:calendar/services/database_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _phone = '';
   String _email = '';
   String _address = '';
-  String _userType = '';
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -30,19 +30,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: _email, password: _password);
 
+        UserModel newUser = UserModel(
+          name: _name,
+          surname: _surname,
+          username: _username,
+          identityNumber: _identityNumber,
+          phone: _phone,
+          email: _email,
+          address: _address,
+        );
+
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userCredential.user?.uid)
-            .set({
-          'name': _name,
-          'surname': _surname,
-          'username': _username,
-          'identityNumber': _identityNumber,
-          'phone': _phone,
-          'email': _email,
-          'address': _address,
-          'userType': _userType
-        });
+            .set(newUser.toMap());
 
         print('Kullanıcı başarıyla kaydedildi!');
       } on FirebaseAuthException catch (e) {

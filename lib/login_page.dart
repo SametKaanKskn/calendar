@@ -1,7 +1,10 @@
+import 'package:calendar/profile_page.dart';
 import 'package:calendar/register.page.dart';
+import 'package:calendar/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -10,18 +13,26 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _auth = FirebaseAuth.instance;
 
   String _email = '';
   String _password = '';
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      print('Login: $_email\nPassword: $_password');
-    }
-  }
+  final AuthService _authService = AuthService();
 
-  void _register() {
-    print("Kayıt Ol");
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      User? user =
+          await _authService.signInWithEmailAndPassword(_email, _password);
+      if (user != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen(user.uid)),
+        );
+      } else {
+        print("Oturum açarken hata oluştu");
+      }
+    }
   }
 
   @override
