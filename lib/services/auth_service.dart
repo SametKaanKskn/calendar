@@ -12,7 +12,7 @@ class AuthService {
           email: email, password: password);
       return result.user;
     } catch (error) {
-      print("Error signing in: $error");
+      print("Oturum açilirken hata oluştu: $error");
       return null;
     }
   }
@@ -23,7 +23,7 @@ class AuthService {
           await _firestore.collection('users').doc(uid).get();
       return userDocument;
     } catch (error) {
-      print("Error getting user data: $error");
+      print("Kullanıcı verileri alınırken hata oluştu: $error");
       throw error;
     }
   }
