@@ -11,10 +11,8 @@ class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
-
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
   String _name = '';
   String _surname = '';
   String _username = '';
@@ -39,7 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: _email,
           address: _address,
         );
-
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userCredential.user?.uid)
