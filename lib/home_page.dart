@@ -227,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               Navigator.pop(context); 
             },
-            child: Text('cancel'),
+            child: Text('İPTAL'),
           ),
         ],
       ),
