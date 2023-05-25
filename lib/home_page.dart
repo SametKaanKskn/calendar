@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:calendar/profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:table_calendar/table_calendar.dart';
-
+import 'screens/event.dart';
+import 'screens/Add_Event.dart';
+import 'screens/edit_event.dart';
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -11,7 +13,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   User? _currentUser;
-  DateTime _selectedDay = DateTime.now();
+   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   bool _isTwoWeeksView = false;
   Map<DateTime, List<Event>> _events = {
@@ -26,13 +28,9 @@ class _HomeScreenState extends State<HomeScreen> {
       Event('Event D', 'Notes for Event D', DateTime.now()),
     ],
   };
-
-  TextEditingController _eventTitleController = TextEditingController();
-  TextEditingController _eventNotesController = TextEditingController();
+  
   @override
   void dispose() {
-    _eventTitleController.dispose();
-    _eventNotesController.dispose();
     super.dispose();
   }
 
@@ -109,22 +107,37 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(height: 20),
             Text('$_selectedDay:'),
-            ListView.builder(
+             ListView.builder(
               shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
               itemCount: _events[_selectedDay]?.length ?? 0,
               itemBuilder: (context, index) {
                 Event event = _events[_selectedDay]![index];
                 return InkWell(
-                  onTap: () => _editEvent(event),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => EditEventDialog(
+                        event: event,
+                        onUpdateEvent: (updatedEvent) {
+                          _updateEvent(updatedEvent as Event);
+                        },
+                        onDeleteEvent: (deletedEvent) {
+                          _deleteEvent(deletedEvent as Event);
+                        },
+                      ),
+                    ).then((value) {
+                      setState(() {}); // Güncelleme işleminden sonra yenileme
+                    });
+                  },
                   child: ListTile(
                     title: Text(event.title),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('saat: ${event.time.hour}:${event.time.minute
-                            .toString().padLeft(2, '0')}'),
-                        Text('Not: ${event.notes}'),
+                        Text(
+                          'Time: ${event.time.hour}:${event.time.minute.toString().padLeft(2, '0')}',
+                        ),
+                        Text('Note: ${event.notes}'),
                       ],
                     ),
                     trailing: IconButton(
@@ -141,11 +154,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
-          _showAddEventDialog();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddEventPage(
+                onEventAdded: (title, notes, time) {
+                  addEvent(title, notes, time);
+                },
+              ),
+            ),
+          ).then((value) {
+            setState(() {}); // Ekleme işleminden sonra yenileme
+          });
         },
       ),
     );
@@ -172,197 +195,46 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: _onItemTapped,
     );
   }
-
-  void _showAddEventDialog() {
-    DateTime selectedTime = DateTime.now();
-    TextEditingController _timeController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text('Not Ekleme'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _eventTitleController,
-                    decoration: InputDecoration(labelText: 'Başlık'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _eventNotesController,
-                    decoration: InputDecoration(labelText: 'Not'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _timeController,
-                    readOnly: true,
-                    onTap: () {
-                      showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(selectedTime),
-                      ).then((time) {
-                        if (time != null) {
-                          setState(() {
-                            selectedTime = DateTime(
-                              selectedTime.year,
-                              selectedTime.month,
-                              selectedTime.day,
-                              time.hour,
-                              time.minute,
-                            );
-                            _timeController.text =
-                            '${selectedTime.hour}:${selectedTime.minute
-                                .toString().padLeft(2, '0')}';
-                          });
-                        }
-                      });
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'saat (HH:mm)',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  _addEvent(selectedTime);
-                  Navigator.pop(context);
-                },
-                child: Text('Ekle'),
-              ),
-            ],
-          ),
-    );
+   
+  void addEvent(String title, String notes, DateTime time) {
+    final newEvent = Event(title, notes, time);
+    _events[_selectedDay] ??= [];
+    _events[_selectedDay]!.add(newEvent);
   }
-   void _editEvent(Event event) {
-    DateTime selectedTime = event.time;
-    
-    _eventTitleController.text = event.title;
-    _eventNotesController.text = event.notes;
 
+  void _updateEvent(Event event) {
+    int? index = _events[_selectedDay]?.indexWhere((e) => e.time == event.time);
+    if (index != null && index >= 0) {
+      _events[_selectedDay]![index] = event;
+    }
+  }
+
+  void _deleteEvent(Event event) {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text('Not Güncelleme'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _eventTitleController,
-                    decoration: InputDecoration(labelText: 'Başlık'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _eventNotesController,
-                    decoration: InputDecoration(labelText: 'Not'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    
-                    readOnly: true,
-                    onTap: () {
-                      showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(selectedTime),
-                      ).then((time) {
-                        
-                          setState(() {
-                            
-                          
-                          });
-                        }
-                      );
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Time (HH:mm)',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  _updateEvent(event, selectedTime);
-                  Navigator.pop(context);
-                },
-                child: Text('Kaydet'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        content: Text('Bu Notu Silmek İstediğinize emin misiniz?'),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); 
+              _removeEvent(event); 
+              setState(() {}); // Silme işleminden sonra yenileme
+            },
+            child: Text('SİL'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); 
+            },
+            child: Text('cancel'),
+          ),
+        ],
+      ),
     );
   }
 
-  void _addEvent(DateTime selectedTime) {
-    final title = _eventTitleController.text;
-    final notes = _eventNotesController.text;
-    final time = selectedTime;
-    if (title.isNotEmpty && notes.isNotEmpty) {
-      final newEvent = Event(title, notes, time);
-      _events[_selectedDay] ??= [];
-      _events[_selectedDay]!.add(newEvent);
-      setState(() {});
-    }
-    else {
-      print('not veya başlık boş olamaz');
-    }
-  }
-  void _updateEvent(Event event, DateTime selectedTime) {
-    final title = _eventTitleController.text;
-    final notes = _eventNotesController.text;
-    final time = selectedTime;
-    if (title.isNotEmpty && notes.isNotEmpty) {
-      event.title = title;
-      event.notes = notes;
-      event.time = time;
-      setState(() {});
-    }
-    else{
-      print('not veya başlık boş olamaz');
-    }
-  }
-   void _deleteEvent(Event event) {
-    showDialog(
-      context: context,
-      builder: (context) =>
-          AlertDialog(
-
-            content: Text('Bu Notu Silmek İstediğinizden Emin Misiniz?'),
-            actions: [
-               ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close the confirmation dialog
-                    _removeEvent(event); // Delete the event
-                  },
-                  child: Text('SİL'),
-                ),
-
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close the confirmation dialog
-                },
-                child: Text('VAZGEÇ'),
-              ),
-            ],
-          ),
-    );
-  }
-void _removeEvent(Event event) {
+  void _removeEvent(Event event) {
     _events[_selectedDay]?.remove(event);
-    setState(() {});
   }
-}
-
- class Event {
-  String title;
-  String notes;
-  DateTime time;
-
-  Event(this.title, this.notes, this.time);
 }
