@@ -2,7 +2,7 @@ import 'dart:collection';
 
 import 'package:calendar/models/event_model.dart';
 import 'package:calendar/screens/add_event.dart';
-import 'package:calendar/screens/edit.event.dart';
+import 'package:calendar/screens/edit_event.dart';
 import 'package:calendar/widgets/event_item.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
