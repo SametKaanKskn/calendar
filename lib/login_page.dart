@@ -1,5 +1,5 @@
 import 'package:calendar/home_page.dart';
-import 'package:calendar/profile_page.dart';
+
 import 'package:calendar/register.page.dart';
 import 'package:calendar/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreen()),
+          MaterialPageRoute(builder: (context) => MyHomePage()),
         );
       } else {
         print("Oturum açarken hata oluştu");

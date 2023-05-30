@@ -1,368 +1,202 @@
+import 'dart:collection';
+
+import 'package:calendar/models/event_model.dart';
+import 'package:calendar/screens/add_event.dart';
+import 'package:calendar/screens/edit.event.dart';
+import 'package:calendar/widgets/event_item.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:calendar/profile_page.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:table_calendar/table_calendar.dart';
 
-class HomeScreen extends StatefulWidget {
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({Key? key}) : super(key: key);
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-  User? _currentUser;
-  DateTime _selectedDay = DateTime.now();
-  DateTime _focusedDay = DateTime.now();
-  bool _isTwoWeeksView = false;
-  Map<DateTime, List<Event>> _events = {
-    DateTime(2023, 5, 1): [
-      Event('Event A', 'Notes for Event A', DateTime.now()),
-      Event('Event B', 'Notes for Event B', DateTime.now()),
-    ],
-    DateTime(2023, 5, 2): [
-      Event('Event C', 'Notes for Event C', DateTime.now()),
-    ],
-    DateTime(2023, 5, 3): [
-      Event('Event D', 'Notes for Event D', DateTime.now()),
-    ],
-  };
+class _MyHomePageState extends State<MyHomePage> {
+  late DateTime _focusedDay;
+  late DateTime _firstDay;
+  late DateTime _lastDay;
+  late DateTime _selectedDay;
+  late CalendarFormat _calendarFormat;
+  late Map<DateTime, List<Event>> _events;
+  int selectedIndex = 0;
 
-  TextEditingController _eventTitleController = TextEditingController();
-  TextEditingController _eventNotesController = TextEditingController();
-  @override
-  void dispose() {
-    _eventTitleController.dispose();
-    _eventNotesController.dispose();
-    super.dispose();
+  int getHashCode(DateTime key) {
+    return key.day * 1000000 + key.month * 10000 + key.year;
   }
 
   @override
   void initState() {
     super.initState();
-    _currentUser = FirebaseAuth.instance.currentUser;
+    _events = LinkedHashMap(
+      equals: isSameDay,
+      hashCode: getHashCode,
+    );
+    _focusedDay = DateTime.now();
+    _firstDay = DateTime.now().subtract(const Duration(days: 1000));
+    _lastDay = DateTime.now().add(const Duration(days: 1000));
+    _selectedDay = DateTime.now();
+    _calendarFormat = CalendarFormat.month;
+    _loadFirestoreEvents();
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (index == 1) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => ProfileScreen(_currentUser!.uid)),
-        );
+  _loadFirestoreEvents() async {
+    final firstDay = DateTime(_focusedDay.year, _focusedDay.month, 1);
+    final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
+    _events = {};
+
+    final snap = await FirebaseFirestore.instance
+        .collection('events')
+        .where('date', isGreaterThanOrEqualTo: firstDay)
+        .where('date', isLessThanOrEqualTo: lastDay)
+        .withConverter(
+            fromFirestore: Event.fromFirestore,
+            toFirestore: (event, options) => event.toFirestore())
+        .get();
+    for (var doc in snap.docs) {
+      final event = doc.data();
+      final day =
+          DateTime.utc(event.date.year, event.date.month, event.date.day);
+      if (_events[day] == null) {
+        _events[day] = [];
       }
-    });
+      _events[day]!.add(event);
+    }
+    setState(() {});
+  }
+
+  List<Event> _getEventsForTheDay(DateTime day) {
+    return _events[day] ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     appBar: AppBar(
-        title: Text('Takvim'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.calendar_today),
-            onPressed: () {
-              setState(() {
-                _isTwoWeeksView = !_isTwoWeeksView;
-              });
-            },
+      appBar: AppBar(title: const Text('Calendar App')),
+      body: IndexedStack(
+        index: selectedIndex,
+        children: [
+          ListView(
+            children: [
+              TableCalendar(
+                eventLoader: _getEventsForTheDay,
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                focusedDay: _focusedDay,
+                firstDay: _firstDay,
+                lastDay: _lastDay,
+                onPageChanged: (focusedDay) {
+                  setState(() {
+                    _focusedDay = focusedDay;
+                  });
+                  _loadFirestoreEvents();
+                },
+                selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                },
+                calendarStyle: const CalendarStyle(
+                  weekendTextStyle: TextStyle(
+                    color: Colors.red,
+                  ),
+                  selectedDecoration: BoxDecoration(
+                    shape: BoxShape.rectangle,
+                    color: Colors.red,
+                  ),
+                ),
+                calendarBuilders: CalendarBuilders(
+                  headerTitleBuilder: (context, day) {
+                    return Container(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(day.toString()),
+                    );
+                  },
+                ),
+              ),
+              ..._getEventsForTheDay(_selectedDay).map(
+                (event) => EventItem(
+                    event: event,
+                    onTap: () async {
+                      final res = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditEvent(
+                              firstDate: _firstDay,
+                              lastDate: _lastDay,
+                              event: event),
+                        ),
+                      );
+                      if (res ?? false) {
+                        _loadFirestoreEvents();
+                      }
+                    },
+                    onDelete: () async {
+                      final delete = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("Delete Event?"),
+                          content:
+                              const Text("Are you sure you want to delete?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text("No"),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
+                              child: const Text("Yes"),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (delete ?? false) {
+                        await FirebaseFirestore.instance
+                            .collection('events')
+                            .doc(event.id)
+                            .delete();
+                        _loadFirestoreEvents();
+                      }
+                    }),
+              ),
+            ],
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TableCalendar(
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              firstDay: DateTime(0),
-              lastDay: DateTime(2050),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              calendarFormat: _isTwoWeeksView
-                  ? CalendarFormat.twoWeeks
-                  : CalendarFormat.month,
-              eventLoader: _getEventsForDay,
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              headerStyle: HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-              ),
-              calendarStyle: CalendarStyle(
-                selectedDecoration: BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-                todayDecoration: BoxDecoration(
-                  color: Colors.grey,
-                  shape: BoxShape.circle,
-                ),
-                markersAnchor: 0.7,
-              ),
-            ),
-            SizedBox(height: 20),
-            Text('$_selectedDay:'),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: _events[_selectedDay]?.length ?? 0,
-              itemBuilder: (context, index) {
-                Event event = _events[_selectedDay]![index];
-                return InkWell(
-                  onTap: () => _editEvent(event),
-                  child: ListTile(
-                    title: Text(event.title),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('saat: ${event.time.hour}:${event.time.minute
-                            .toString().padLeft(2, '0')}'),
-                        Text('Not: ${event.notes}'),
-                      ],
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        _deleteEvent(event);
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-            SizedBox(height: 20),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () {
-          _showAddEventDialog();
+        onPressed: () async {
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddEvent(
+                firstDate: _firstDay,
+                lastDate: _lastDay,
+                selectedDate: _selectedDay,
+              ),
+            ),
+          );
+          if (result ?? false) {
+            _loadFirestoreEvents();
+          }
         },
+        child: const Icon(Icons.add),
       ),
     );
   }
-
-  List<Event> _getEventsForDay(DateTime day) {
-    return _events[day] ?? [];
-  }
- 
-  Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.account_circle),
-          label: 'Profile',
-        ),
-      ],
-      currentIndex: _selectedIndex,
-      selectedItemColor: Colors.amber[800],
-      onTap: _onItemTapped,
-    );
-  }
-
-  void _showAddEventDialog() {
-    DateTime selectedTime = DateTime.now();
-    TextEditingController _timeController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text('Not Ekleme'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _eventTitleController,
-                    decoration: InputDecoration(labelText: 'Başlık'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _eventNotesController,
-                    decoration: InputDecoration(labelText: 'Not'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _timeController,
-                    readOnly: true,
-                    onTap: () {
-                      showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(selectedTime),
-                      ).then((time) {
-                        if (time != null) {
-                          setState(() {
-                            selectedTime = DateTime(
-                              selectedTime.year,
-                              selectedTime.month,
-                              selectedTime.day,
-                              time.hour,
-                              time.minute,
-                            );
-                            _timeController.text =
-                            '${selectedTime.hour}:${selectedTime.minute
-                                .toString().padLeft(2, '0')}';
-                          });
-                        }
-                      });
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'saat (HH:mm)',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  _addEvent(selectedTime);
-                  Navigator.pop(context);
-                },
-                child: Text('Ekle'),
-              ),
-            ],
-          ),
-    );
-  }
-   void _editEvent(Event event) {
-    DateTime selectedTime = event.time;
-    
-    _eventTitleController.text = event.title;
-    _eventNotesController.text = event.notes;
-
-    showDialog(
-      context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text('Not Güncelleme'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _eventTitleController,
-                    decoration: InputDecoration(labelText: 'Başlık'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _eventNotesController,
-                    decoration: InputDecoration(labelText: 'Not'),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    
-                    readOnly: true,
-                    onTap: () {
-                      showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(selectedTime),
-                      ).then((time) {
-                        
-                          setState(() {
-                            
-                          
-                          });
-                        }
-                      );
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Time (HH:mm)',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  _updateEvent(event, selectedTime);
-                  Navigator.pop(context);
-                },
-                child: Text('Kaydet'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _addEvent(DateTime selectedTime) {
-    final title = _eventTitleController.text;
-    final notes = _eventNotesController.text;
-    final time = selectedTime;
-    if (title.isNotEmpty && notes.isNotEmpty) {
-      final newEvent = Event(title, notes, time);
-      _events[_selectedDay] ??= [];
-      _events[_selectedDay]!.add(newEvent);
-      setState(() {});
-    }
-    else {
-      print('not veya başlık boş olamaz');
-    }
-  }
-  void _updateEvent(Event event, DateTime selectedTime) {
-    final title = _eventTitleController.text;
-    final notes = _eventNotesController.text;
-    final time = selectedTime;
-    if (title.isNotEmpty && notes.isNotEmpty) {
-      event.title = title;
-      event.notes = notes;
-      event.time = time;
-      setState(() {});
-    }
-    else{
-      print('not veya başlık boş olamaz');
-    }
-  }
-   void _deleteEvent(Event event) {
-    showDialog(
-      context: context,
-      builder: (context) =>
-          AlertDialog(
-
-            content: Text('Bu Notu Silmek İstediğinizden Emin Misiniz?'),
-            actions: [
-               ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close the confirmation dialog
-                    _removeEvent(event); // Delete the event
-                  },
-                  child: Text('SİL'),
-                ),
-
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close the confirmation dialog
-                },
-                child: Text('VAZGEÇ'),
-              ),
-            ],
-          ),
-    );
-  }
-void _removeEvent(Event event) {
-    _events[_selectedDay]?.remove(event);
-    setState(() {});
-  }
-}
-
- class Event {
-  String title;
-  String notes;
-  DateTime time;
-
-  Event(this.title, this.notes, this.time);
 }
