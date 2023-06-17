@@ -6,7 +6,7 @@ class AddEvent extends StatefulWidget {
   final DateTime firstDate;
   final DateTime lastDate;
   final DateTime? selectedDate;
-
+ 
   const AddEvent(
       {Key? key,
       required this.firstDate,
