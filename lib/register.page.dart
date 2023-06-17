@@ -11,6 +11,7 @@ class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
+
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
@@ -21,9 +22,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _phone = '';
   String _email = '';
   String _address = '';
+  String _userTypes = '';
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      if (_userTypes == 'Admin') {
+        var adminUserDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .where('userTypes', isEqualTo: 'Admin')
+            .get();
+
+        if (adminUserDoc.docs.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Admin kaydınız zaten var!'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+      }
+
       try {
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: _email, password: _password);
@@ -36,6 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           phone: _phone,
           email: _email,
           address: _address,
+          userTypes: _userTypes,
         );
         await FirebaseFirestore.instance
             .collection('users')
@@ -58,6 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
+        key: _scaffoldKey,
         appBar: AppBar(
           title: Text('Kayıt Ol'),
         ),
@@ -83,43 +106,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         _buildTextFormField('Ad', (value) {
                           setState(() {
-                            _name = value;
+                            _name = value!;
                           });
                         }),
                         _buildTextFormField('Soyad', (value) {
                           setState(() {
-                            _surname = value;
+                            _surname = value!;
                           });
                         }),
                         _buildTextFormField('Kullanıcı Adı', (value) {
                           setState(() {
-                            _username = value;
+                            _username = value!;
                           });
                         }),
                         _buildTextFormField('Şifre', (value) {
                           setState(() {
-                            _password = value;
+                            _password = value!;
                           });
                         }, isPassword: true),
                         _buildTextFormField('TC Kimlik No', (value) {
                           setState(() {
-                            _identityNumber = value;
+                            _identityNumber = value!;
                           });
                         }, keyboardType: TextInputType.number),
                         _buildTextFormField('Telefon', (value) {
                           setState(() {
-                            _phone = value;
+                            _phone = value!;
                           });
                         }, keyboardType: TextInputType.phone),
                         _buildTextFormField('E-posta Adresi', (value) {
                           setState(() {
-                            _email = value;
+                            _email = value!;
                           });
                         }, keyboardType: TextInputType.emailAddress),
                         _buildTextFormField('Adres', (value) {
                           setState(() {
-                            _address = value;
+                            _address = value!;
                           });
+                        }),
+                        _buildTextFormField('Admin--User', (value) {
+                          setState(() {
+                            _userTypes = value!;
+                          });
+                        }, validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Lütfen Admin veya User girin';
+                          }
+                          if (value != 'Admin' && value != 'User') {
+                            return 'Lütfen sadece Admin veya User girin';
+                          }
+                          return null;
                         }),
                       ],
                     ),
@@ -151,14 +187,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextFormField(String labelText, Function(String) onChanged,
+  Widget _buildTextFormField(String labelText, Function(String?) onChanged,
       {bool isPassword = false,
-      TextInputType keyboardType = TextInputType.text}) {
+      TextInputType keyboardType = TextInputType.text,
+      String? Function(String?)? validator}) {
     return SizedBox(
       width: MediaQuery.of(context).size.width * 0.4,
       child: TextFormField(
         decoration: InputDecoration(
           labelText: labelText,
+          hintText: labelText,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(32.0),
             borderSide: BorderSide.none,
@@ -177,12 +215,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         obscureText: isPassword,
         keyboardType: keyboardType,
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Lütfen $labelText girin';
-          }
-          return null;
-        },
+        validator: validator ??
+            (value) {
+              if (value == null || value.isEmpty) {
+                return 'Lütfen $labelText girin';
+              }
+              return null;
+            },
         onChanged: onChanged,
       ),
     );
