@@ -1,3 +1,4 @@
+import 'package:calendar/admin_page.dart';
 import 'package:calendar/home_page.dart';
 
 import 'package:calendar/register.page.dart';
@@ -20,6 +21,18 @@ class _LoginScreenState extends State<LoginScreen> {
   String _password = '';
 
   final AuthService _authService = AuthService();
+
+  void _adminLogin() async {
+    User? user = await _authService.signInAsAdmin(_email, _password);
+    if (user != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AdminScreen()),
+      );
+    } else {
+      print("Admin girişi başarısız");
+    }
+  }
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -153,6 +166,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         'Kayıt Ol',
+                        style: TextStyle(
+                          fontSize: 16.0,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        primary:
+                            Theme.of(context).primaryColor.withOpacity(0.7),
+                        onPrimary: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: _adminLogin,
+                      child: Text(
+                        'Admin Girişi',
                         style: TextStyle(
                           fontSize: 16.0,
                         ),
