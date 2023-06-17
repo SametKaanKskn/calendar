@@ -17,6 +17,30 @@ class AuthService {
     }
   }
 
+  Future<User?> signInAsAdmin(String email, String password) async {
+    try {
+      UserCredential result = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      DocumentSnapshot userDocument =
+          await _firestore.collection('users').doc(result.user!.uid).get();
+      if (userDocument.exists) {
+        Map<String, dynamic> data = userDocument.data() as Map<String, dynamic>;
+        if (data['userTypes'] == 'Admin') {
+          return result.user;
+        } else {
+          print("Kullanıcı admin değil");
+          return null;
+        }
+      } else {
+        print("Kullanıcı bulunamadı");
+        return null;
+      }
+    } catch (error) {
+      print("Oturum açılırken hata oluştu: $error");
+      return null;
+    }
+  }
+
   Future<DocumentSnapshot> getUserData(String uid) async {
     try {
       DocumentSnapshot userDocument =

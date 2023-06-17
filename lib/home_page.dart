@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar App')),
+      appBar: AppBar(title: const Text('Takvim')),
       body: IndexedStack(
         index: selectedIndex,
         children: [
@@ -145,23 +145,23 @@ class _MyHomePageState extends State<MyHomePage> {
                       final delete = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(
-                          title: const Text("Delete Event?"),
+                          title: const Text("Etkinliği Sil?"),
                           content:
-                              const Text("Are you sure you want to delete?"),
+                              const Text("Etkinliği Silmek İstiyor Musunuz?"),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.black,
                               ),
-                              child: const Text("No"),
+                              child: const Text("Hayır"),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(context, true),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.red,
                               ),
-                              child: const Text("Yes"),
+                              child: const Text("Evet"),
                             ),
                           ],
                         ),
