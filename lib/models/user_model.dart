@@ -7,6 +7,7 @@ class UserModel {
   final String phone;
   final String email;
   final String address;
+  final String userTypes;
 
   UserModel({
     this.id,
@@ -17,6 +18,7 @@ class UserModel {
     required this.phone,
     required this.email,
     required this.address,
+    required this.userTypes
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -29,6 +31,8 @@ class UserModel {
       phone: data['phone'],
       email: data['email'],
       address: data['address'],
+      userTypes: data['userTypes'],
+
     );
   }
 
@@ -41,6 +45,7 @@ class UserModel {
       'phone': phone,
       'email': email,
       'address': address,
+      'userTypes': userTypes,
     };
   }
 }
