@@ -10,9 +10,9 @@ class EditEvent extends StatefulWidget {
 
   const EditEvent(
       {Key? key,
-      required this.firstDate,
-      required this.lastDate,
-      required this.event})
+        required this.firstDate,
+        required this.lastDate,
+        required this.event})
       : super(key: key);
 
   @override
@@ -24,16 +24,17 @@ class _EditEventState extends State<EditEvent> {
   late TimeOfDay _selectedTime;
   late TextEditingController _titleController;
   late TextEditingController _descController;
+  late TextEditingController _reminderTimeController; // Hatırlatma süresi için yeni controller eklendi
 
   @override
   void initState() {
     super.initState();
 
     _selectedDate = widget.event.date;
-    _selectedTime = TimeOfDay(
-        hour: widget.event.date.hour, minute: widget.event.date.minute);
+    _selectedTime = TimeOfDay(hour: widget.event.date.hour, minute: widget.event.date.minute);
     _titleController = TextEditingController(text: widget.event.title);
     _descController = TextEditingController(text: widget.event.description);
+    _reminderTimeController = TextEditingController(); // Hatırlatma süresi controller'ı oluşturuldu
   }
 
   // UI  Kısmı .
@@ -100,6 +101,18 @@ class _EditEventState extends State<EditEvent> {
               fillColor: Colors.grey.shade100,
             ),
           ),
+          SizedBox(height: 10.0),
+          // Hatırlatma süresi için bir form alanı
+          TextField(
+            controller: _reminderTimeController,
+            keyboardType: TextInputType.number, // Sadece sayı girişi yapılmasını sağlar
+            decoration: InputDecoration(
+              labelText: 'Hatırlatma Süresi (Dakika)',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+            ),
+          ),
           // Formu kaydetmek için bir buton
           ElevatedButton(
             onPressed: () {
@@ -120,15 +133,24 @@ class _EditEventState extends State<EditEvent> {
       print('Başlık boş olamaz');
       return;
     }
-    final eventDateTime = DateTime(_selectedDate.year, _selectedDate.month,
-        _selectedDate.day, _selectedTime.hour, _selectedTime.minute);
-    await FirebaseFirestore.instance
-        .collection('events')
-        .doc(widget.event.id)
-        .update({
+    final eventDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
+    final reminderTimeInMinutes =
+        int.tryParse(_reminderTimeController.text) ?? 0; // Hatırlatma süresini dakika cinsinden alıyoruz
+    final reminderDateTime = eventDateTime.subtract(Duration(minutes: reminderTimeInMinutes));
+    final isReminderSet = reminderTimeInMinutes > 0 && reminderDateTime.isAfter(DateTime.now());
+
+    await FirebaseFirestore.instance.collection('events').doc(widget.event.id).update({
       "title": title,
       "description": description,
       "date": Timestamp.fromDate(eventDateTime),
+      "reminder": isReminderSet ? Timestamp.fromDate(reminderDateTime) : null, // Hatırlatma zamanını güncelliyoruz
     });
 
     if (mounted) {

@@ -83,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ListView(
             children: [
               TableCalendar(
+                startingDayOfWeek: StartingDayOfWeek.monday,
                 eventLoader: _getEventsForTheDay,
                 calendarFormat: _calendarFormat,
                 onFormatChanged: (format) {
