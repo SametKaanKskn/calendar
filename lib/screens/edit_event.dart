@@ -2,7 +2,6 @@ import 'package:calendar/models/event_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-// StatefulWidget'ı kullanarak, etkinlik düzenleme alanı
 class EditEvent extends StatefulWidget {
   final DateTime firstDate;
   final DateTime lastDate;
@@ -10,9 +9,9 @@ class EditEvent extends StatefulWidget {
 
   const EditEvent(
       {Key? key,
-        required this.firstDate,
-        required this.lastDate,
-        required this.event})
+      required this.firstDate,
+      required this.lastDate,
+      required this.event})
       : super(key: key);
 
   @override
@@ -24,17 +23,18 @@ class _EditEventState extends State<EditEvent> {
   late TimeOfDay _selectedTime;
   late TextEditingController _titleController;
   late TextEditingController _descController;
-  late TextEditingController _reminderTimeController; // Hatırlatma süresi için yeni controller eklendi
+  late TextEditingController _reminderTimeController;
 
   @override
   void initState() {
     super.initState();
 
     _selectedDate = widget.event.date;
-    _selectedTime = TimeOfDay(hour: widget.event.date.hour, minute: widget.event.date.minute);
+    _selectedTime = TimeOfDay(
+        hour: widget.event.date.hour, minute: widget.event.date.minute);
     _titleController = TextEditingController(text: widget.event.title);
     _descController = TextEditingController(text: widget.event.description);
-    _reminderTimeController = TextEditingController(); // Hatırlatma süresi controller'ı oluşturuldu
+    _reminderTimeController = TextEditingController();
   }
 
   // UI  Kısmı .
@@ -105,7 +105,7 @@ class _EditEventState extends State<EditEvent> {
           // Hatırlatma süresi için bir form alanı
           TextField(
             controller: _reminderTimeController,
-            keyboardType: TextInputType.number, // Sadece sayı girişi yapılmasını sağlar
+            keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Hatırlatma Süresi (Dakika)',
               border: OutlineInputBorder(),
@@ -141,16 +141,23 @@ class _EditEventState extends State<EditEvent> {
       _selectedTime.minute,
     );
 
-    final reminderTimeInMinutes =
-        int.tryParse(_reminderTimeController.text) ?? 0; // Hatırlatma süresini dakika cinsinden alıyoruz
-    final reminderDateTime = eventDateTime.subtract(Duration(minutes: reminderTimeInMinutes));
-    final isReminderSet = reminderTimeInMinutes > 0 && reminderDateTime.isAfter(DateTime.now());
+    final reminderTimeInMinutes = int.tryParse(_reminderTimeController.text) ??
+        0; // Hatırlatma süresini dakika cinsinden alıyoruz
+    final reminderDateTime =
+        eventDateTime.subtract(Duration(minutes: reminderTimeInMinutes));
+    final isReminderSet =
+        reminderTimeInMinutes > 0 && reminderDateTime.isAfter(DateTime.now());
 
-    await FirebaseFirestore.instance.collection('events').doc(widget.event.id).update({
+    await FirebaseFirestore.instance
+        .collection('events')
+        .doc(widget.event.id)
+        .update({
       "title": title,
       "description": description,
       "date": Timestamp.fromDate(eventDateTime),
-      "reminder": isReminderSet ? Timestamp.fromDate(reminderDateTime) : null, // Hatırlatma zamanını güncelliyoruz
+      "reminder": isReminderSet
+          ? Timestamp.fromDate(reminderDateTime)
+          : null, // Hatırlatma zamanını güncelliyoruz
     });
 
     if (mounted) {

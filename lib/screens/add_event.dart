@@ -27,7 +27,7 @@ class _AddEventState extends State<AddEvent> {
   final _descController = TextEditingController();
   final _reminderTimeController = TextEditingController();
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -35,7 +35,7 @@ class _AddEventState extends State<AddEvent> {
     _selectedDate = widget.selectedDate ?? DateTime.now();
     _selectedTime = TimeOfDay.now();
     var initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     var initializationSettingsIOS = IOSInitializationSettings();
     var initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
@@ -147,7 +147,7 @@ class _AddEventState extends State<AddEvent> {
     );
 
     final reminderDateTime =
-    eventDateTime.subtract(Duration(minutes: reminderTimeInMinutes));
+        eventDateTime.subtract(Duration(minutes: reminderTimeInMinutes));
 
     await FirebaseFirestore.instance.collection('events').add({
       "title": title,
@@ -168,10 +168,10 @@ class _AddEventState extends State<AddEvent> {
   }
 
   Future<void> _scheduleNotification(
-      DateTime scheduledDateTime,
-      String title,
-      String description,
-      ) async {
+    DateTime scheduledDateTime,
+    String title,
+    String description,
+  ) async {
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'event_reminder',
       'Event Reminder',
@@ -194,7 +194,7 @@ class _AddEventState extends State<AddEvent> {
       platformChannelSpecifics,
       androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }
