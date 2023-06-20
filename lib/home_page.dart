@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Takvim')),
+      appBar: AppBar(title: const Text('TAKVİM')),
       body: IndexedStack(
         index: selectedIndex,
         children: [
