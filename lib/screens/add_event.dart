@@ -134,7 +134,7 @@ class _AddEventState extends State<AddEvent> {
         int.tryParse(_reminderTimeController.text) ?? 0;
 
     if (title.isEmpty) {
-      print('Başlık boş olamaz');
+      print('BAŞLIK BOŞ OLAMAZ');
       return;
     }
 
