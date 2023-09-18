@@ -1,4 +1,4 @@
-Takvim Uygulaması Help Dokümantasyonu
+
 Bu takvim uygulaması Flutter framework kullanılarak geliştirilmiştir. Kullanıcıların kayıt olabilecekleri, oturum açabilecekleri ve yönetici erişimine sahip olduklarında özel işlemler gerçekleştirebilecekleri bir uygulamadır. Firebase Firestore ile kullanıcı kimlik doğrulama ve veri depolama işlevselliği sağlanmıştır.
 
 Ana Özellikler
